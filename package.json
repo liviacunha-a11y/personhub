@@ -1,0 +1,15 @@
+{
+  "name": "personhub",
+  "version": "1.0.0",
+  "description": "Ferramenta interna Seazone para validar/criar/mesclar pessoas no Pipedrive",
+  "type": "module",
+  "main": "server.mjs",
+  "private": true,
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

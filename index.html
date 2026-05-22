@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>PersonHub — Seazone</title>
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="%23FF6E5E"/><text x="16" y="22.5" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="800" fill="%23fff" text-anchor="middle">P</text></svg>'>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    /* Coral Seazone como primário; azul vira secundário */
+    --sz-blue: #FF6E5E;
+    --sz-blue-dark: #ED5547;
+    --sz-navy: #080E32;
+    --sz-navy-soft: #141A3C;
+    --sz-orange: #0055FF;
+    --sz-orange-dark: #003fcc;
+    --sz-green: #5EA500;
+    --sz-red: #E7000B;
+    --sz-gray-50: #F3F3F5;
+    --sz-gray-100: #E6E7EA;
+    --sz-gray-200: #CECFD6;
+    --sz-gray-400: #9C9FAD;
+    --sz-gray-600: #6B6E84;
+    --sz-azul-50: #FFEDEB;
+  }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--sz-navy);
+    background: var(--sz-gray-50);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === STATE TOGGLE === */
+  body.state-login .app-view { display: none; }
+  body:not(.state-login) .login-view { display: none; }
+
+  /* === LOGO === */
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--sz-blue);
+    color: #fff;
+    font-weight: 800;
+    font-size: 24px;
+    letter-spacing: -0.5px;
+    box-shadow: 0 6px 16px rgba(255, 110, 94, 0.4);
+  }
+  .logo-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    font-size: 17px;
+    box-shadow: 0 3px 8px rgba(255, 110, 94, 0.28);
+  }
+
+  /* === LOGIN VIEW === */
+  .login-view {
+    min-height: 100vh;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .login-card {
+    background: var(--sz-blue);
+    color: #fff;
+    border-radius: 18px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 50px rgba(255, 110, 94, 0.35);
+  }
+  .login-card .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .login-card .logo {
+    background: #fff;
+    color: var(--sz-blue);
+    box-shadow: 0 4px 12px rgba(8, 14, 50, 0.15);
+  }
+  .login-card h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .login-card .subtitle {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+  .login-card .greeting {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 14px;
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+  .login-card label {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 600;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .login-card input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    font-size: 15px;
+    color: var(--sz-navy);
+    background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  .login-card input:focus {
+    outline: none;
+    border-color: #fff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+  }
+  .login-card .btn-primary {
+    width: 100%;
+    padding: 13px;
+    background: #fff;
+    color: var(--sz-blue);
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: background 0.15s, transform 0.05s, color 0.15s;
+  }
+  .login-card .btn-primary:hover:not(:disabled) { background: var(--sz-navy); color: #fff; }
+  .login-card .btn-primary:active:not(:disabled) { transform: translateY(1px); }
+  .login-card .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+  .login-status {
+    margin-top: 14px;
+    font-size: 13px;
+    min-height: 20px;
+    text-align: center;
+    color: #fff;
+  }
+  .login-status .err { color: #fff; background: rgba(0, 0, 0, 0.18); padding: 6px 10px; border-radius: 6px; display: inline-block; }
+  .login-footer {
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* === APP VIEW === */
+  .app-header {
+    background: #fff;
+    border-bottom: 1px solid var(--sz-gray-100);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .app-header .brand { display: flex; align-items: center; gap: 10px; }
+  .app-header .wordmark { font-weight: 700; font-size: 17px; color: var(--sz-navy); letter-spacing: -0.3px; }
+  .app-header .session { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--sz-gray-600); }
+  .app-header .user-name { color: var(--sz-navy); font-weight: 600; }
+  .btn-logout {
+    background: transparent;
+    border: 1px solid var(--sz-gray-200);
+    color: var(--sz-gray-600);
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-logout:hover { background: var(--sz-gray-50); color: var(--sz-navy); border-color: var(--sz-gray-400); }
+
+  .app-main { max-width: 960px; margin: 32px auto; padding: 0 24px; }
+
+  .panel {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px 30px;
+    box-shadow: 0 1px 3px rgba(8, 14, 50, 0.05);
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    margin: 0 0 18px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--sz-navy);
+    letter-spacing: -0.2px;
+  }
+  .form-grid { display: grid; gap: 14px; }
+  .form-grid label {
+    display: block;
+    font-size: 12px;
+    color: var(--sz-gray-600);
+    font-weight: 600;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .form-grid input {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--sz-gray-100);
+    border-radius: 9px;
+    font-size: 14px;
+    color: var(--sz-navy);
+    background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  .form-grid input:focus {
+    outline: none;
+    border-color: var(--sz-blue);
+    box-shadow: 0 0 0 4px var(--sz-azul-50);
+  }
+  .btn-primary {
+    padding: 11px 22px;
+    background: var(--sz-blue);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--sz-blue-dark); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-create {
+    padding: 12px 22px;
+    background: var(--sz-green);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: filter 0.15s;
+  }
+  .btn-create:hover:not(:disabled) { filter: brightness(0.92); }
+  .btn-create:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* === RESULT CARDS === */
+  .result-area h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--sz-navy);
+    margin: 0 0 12px;
+    letter-spacing: -0.2px;
+  }
+  .result-area .empty-help {
+    font-size: 12px;
+    color: var(--sz-gray-600);
+    background: #fef3c7;
+    border-left: 3px solid #f59e0b;
+    padding: 9px 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+  .card {
+    background: #fff;
+    border: 2px solid var(--sz-gray-100);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    transition: border-color 0.15s, transform 0.05s;
+  }
+  .card.clickable { cursor: pointer; }
+  .card.clickable:hover { border-color: var(--sz-blue); }
+  .card.selected { border-color: var(--sz-blue); background: var(--sz-azul-50); }
+  .card .id-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .card .pid {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--sz-blue);
+    letter-spacing: -0.5px;
+  }
+  .card .name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--sz-navy);
+    margin-bottom: 8px;
+  }
+  .card .meta {
+    font-size: 12px;
+    color: var(--sz-gray-600);
+    line-height: 1.7;
+  }
+  .card .meta strong { color: var(--sz-navy-soft); font-weight: 600; }
+  .sync-warn { color: #b45309; font-size: 11px; }
+
+  .btn-copy {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--sz-gray-50);
+    color: var(--sz-gray-600);
+    border: 1px solid var(--sz-gray-100);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-copy:hover { background: var(--sz-gray-100); color: var(--sz-navy); }
+  .btn-pd {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--sz-orange);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.15s;
+  }
+  .btn-pd:hover { background: var(--sz-orange-dark); }
+
+  .help-text { font-size: 12px; color: var(--sz-gray-600); margin-top: 12px; line-height: 1.5; }
+  .err { color: var(--sz-red); }
+  .ok { color: var(--sz-green); }
+
+  /* === BATCH === */
+  .batch-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--sz-gray-100);
+  }
+  .batch-row .batch-label {
+    font-size: 12px;
+    color: var(--sz-gray-600);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-right: 4px;
+  }
+  .btn-secondary {
+    padding: 8px 14px;
+    background: #fff;
+    color: var(--sz-navy);
+    border: 1.5px solid var(--sz-gray-100);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+  }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--sz-blue); color: var(--sz-blue); }
+  .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .batch-note {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--sz-gray-600);
+    font-style: italic;
+  }
+  .batch-preview {
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--sz-azul-50);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--sz-navy);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .batch-preview .file-name { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .batch-preview .count { color: var(--sz-gray-600); }
+  .panel { overflow-wrap: anywhere; min-width: 0; }
+
+  .progress {
+    margin: 12px 0;
+    height: 6px;
+    background: var(--sz-gray-100);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--sz-blue);
+    transition: width 0.2s;
+  }
+  .progress-text {
+    font-size: 12px;
+    color: var(--sz-gray-600);
+    margin-top: 6px;
+    text-align: center;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .batch-table-wrap {
+    margin-top: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .batch-table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .batch-table th {
+    text-align: left;
+    padding: 9px 8px;
+    color: var(--sz-gray-600);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 2px solid var(--sz-gray-100);
+  }
+  .batch-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--sz-gray-100);
+    vertical-align: middle;
+    color: var(--sz-navy);
+  }
+  .batch-table tr:last-child td { border-bottom: none; }
+  .batch-table .col-num { color: var(--sz-gray-400); font-weight: 600; width: 28px; }
+  .batch-table .col-name { font-weight: 600; max-width: 180px; word-break: break-word; }
+  .batch-table .col-id { font-weight: 800; color: var(--sz-blue); font-size: 14px; }
+  .batch-table .col-actions { white-space: nowrap; }
+  .batch-table .col-actions button,
+  .batch-table .col-actions a {
+    margin-right: 4px;
+  }
+  .batch-table td { word-break: break-word; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .badge-ok { background: #ecfdf5; color: #047857; }
+  .badge-conflict { background: #fff7ed; color: #b45309; }
+  .badge-missing { background: #fef2f2; color: #b91c1c; }
+  .badge-created { background: var(--sz-azul-50); color: var(--sz-blue); }
+  .badge-skip { background: var(--sz-gray-50); color: var(--sz-gray-600); }
+  .badge-err { background: #fef2f2; color: #991b1b; }
+  .badge-pending { background: var(--sz-gray-50); color: var(--sz-gray-600); }
+  .badge-sapron { background: #fef3c7; color: #92400e; }
+  .badge-keep { background: #ecfdf5; color: #047857; }
+  .badge-merge { background: #fff7ed; color: #b45309; }
+
+  /* === MERGE === */
+  .card.role-keep { border-color: var(--sz-green); background: #f0fdf4; }
+  .card.role-merge { border-color: var(--sz-blue); background: var(--sz-azul-50); }
+  .conflict-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--sz-gray-100);
+  }
+  .btn-keep, .btn-merge {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1.5px solid;
+    transition: all 0.12s;
+    font-family: inherit;
+  }
+  .btn-keep { background: #fff; color: #047857; border-color: #d1fae5; }
+  .btn-keep:hover { background: #ecfdf5; }
+  .btn-keep.active { background: var(--sz-green); color: #fff; border-color: var(--sz-green); }
+  .btn-merge { background: #fff; color: #b45309; border-color: #fed7aa; }
+  .btn-merge:hover { background: #fff7ed; }
+  .btn-merge.active { background: var(--sz-blue); color: #fff; border-color: var(--sz-blue); }
+  .merge-bar {
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: var(--sz-azul-50);
+    border: 2px solid var(--sz-blue);
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .merge-bar .summary { color: var(--sz-navy); }
+  .merge-bar .btn-execute-merge {
+    padding: 9px 16px;
+    background: var(--sz-blue);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 13px;
+    margin-left: auto;
+  }
+  .merge-bar .btn-execute-merge:hover { background: var(--sz-blue-dark); }
+  .merge-bar .btn-execute-merge:disabled { opacity: 0.5; cursor: not-allowed; }
+  .conflict-list .opt.role-keep { background: #f0fdf4; padding: 6px; border-radius: 6px; }
+  .conflict-list .opt.role-merge { background: var(--sz-azul-50); padding: 6px; border-radius: 6px; }
+  .conflict-list .opt button.btn-keep,
+  .conflict-list .opt button.btn-merge {
+    padding: 3px 9px;
+    font-size: 11px;
+  }
+
+  .conflict-list {
+    margin-top: 6px;
+    padding: 8px;
+    background: #fff7ed;
+    border-radius: 6px;
+    font-size: 11px;
+  }
+  .conflict-list .opt {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px 0;
+  }
+  .conflict-list .opt strong { color: var(--sz-blue); font-weight: 800; }
+
+  .batch-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 14px;
+    border-top: 1px solid var(--sz-gray-100);
+  }
+
+  .toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--sz-navy);
+    color: #fff;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    transform: translateY(-6px);
+    pointer-events: none;
+    box-shadow: 0 10px 30px rgba(8, 14, 50, 0.3);
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 520px) {
+    .app-header { padding: 12px 16px; }
+    .app-header .session { font-size: 12px; }
+    .login-card { padding: 28px 22px; }
+  }
+</style>
+</head>
+<body class="state-login">
+
+<!-- ============ LOGIN VIEW ============ -->
+<div class="login-view">
+  <div class="login-card">
+    <div class="brand">
+      <span class="logo">P</span>
+      <div>
+        <h1>PersonHub</h1>
+        <div class="subtitle">Lookup + Create · Pipedrive</div>
+      </div>
+    </div>
+    <div class="greeting">Bem-vinda, time SZ. Use seu email Seazone para começar.</div>
+    <form id="loginForm" autocomplete="on">
+      <label for="loginEmail">Seu email Seazone</label>
+      <input id="loginEmail" type="email" placeholder="seunome@seazone.com.br" required autocomplete="email">
+      <button type="submit" class="btn-primary" id="loginBtn">Entrar →</button>
+      <div class="login-status" id="loginStatus"></div>
+    </form>
+    <div class="login-footer">v1 · busca via Nekt · criação via Pipedrive</div>
+  </div>
+</div>
+
+<!-- ============ APP VIEW ============ -->
+<div class="app-view">
+  <header class="app-header">
+    <div class="brand">
+      <span class="logo logo-sm">P</span>
+      <span class="wordmark">PersonHub</span>
+    </div>
+    <div class="session">
+      <span>Olá, <span class="user-name" id="sessionName">—</span></span>
+      <button class="btn-logout" id="logoutBtn">Sair</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div class="panel">
+      <h2>Buscar pessoa no Pipedrive</h2>
+      <div class="form-grid">
+        <div>
+          <label for="name">Nome</label>
+          <input id="name" type="text" placeholder="Nome completo">
+        </div>
+        <div>
+          <label for="phone">Telefone</label>
+          <input id="phone" type="tel" placeholder="(48) 99999-9999">
+        </div>
+        <div>
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="email@exemplo.com">
+        </div>
+        <div>
+          <button id="lookupBtn" class="btn-primary">Buscar Person</button>
+        </div>
+      </div>
+
+      <div class="batch-row">
+        <span class="batch-label">Validar até 100 persons:</span>
+        <button class="btn-secondary" id="downloadTemplateBtn">⬇ Baixar modelo</button>
+        <button class="btn-secondary" id="importCsvBtn">📁 Importar planilha</button>
+        <input type="file" id="csvFile" accept=".xlsx,.xls,.csv,text/csv" style="display:none">
+      </div>
+      <div class="batch-note">* PREENCHER ORGANIZAÇÃO ATRELADA AO PERSON NO PIPEDRIVE *</div>
+      <div id="batchPreview"></div>
+    </div>
+
+    <div class="result-area" id="result"></div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const PD_BASE = "https://seazone-fd92b9.pipedrive.com";
+const pdPersonUrl = (id) => `${PD_BASE}/person/${id}`;
+let currentUser = null;
+
+function showToast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1500);
+}
+
+function copyId(id) {
+  navigator.clipboard.writeText(String(id));
+  showToast("ID copiado: " + id);
+}
+
+function escapeHtml(s) {
+  if (!s) return "";
+  return String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+async function fetchJson(url, opts = {}) {
+  const headers = { ...(opts.headers || {}) };
+  const savedEmail = localStorage.getItem("seazoneEmail");
+  if (savedEmail && !url.startsWith("/api/me")) {
+    headers["X-User-Email"] = savedEmail;
+  }
+  const r = await fetch(url, { ...opts, headers });
+  let j = {};
+  try { j = await r.json(); } catch {}
+  if (r.status === 401) {
+    if (currentUser) {
+      logout();
+      showToast("Sessão expirada — faça login de novo");
+    }
+    throw new Error(j.error || "Não autorizado");
+  }
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+
+// ============ AUTH ============
+async function attemptLogin(email, { silent = false } = {}) {
+  try {
+    const u = await fetchJson(`/api/me?email=${encodeURIComponent(email)}`);
+    currentUser = u;
+    localStorage.setItem("seazoneEmail", email);
+    $("sessionName").textContent = `${u.name} (user_id ${u.user_id})`;
+    document.body.classList.remove("state-login");
+    return true;
+  } catch (e) {
+    if (!silent) $("loginStatus").innerHTML = `<span class="err">✕ ${escapeHtml(e.message)}</span>`;
+    return false;
+  }
+}
+
+function logout() {
+  localStorage.removeItem("seazoneEmail");
+  currentUser = null;
+  document.body.classList.add("state-login");
+  $("result").innerHTML = "";
+  $("name").value = "";
+  $("phone").value = "";
+  $("email").value = "";
+  $("loginEmail").value = "";
+  $("loginStatus").innerHTML = "";
+}
+
+$("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = $("loginEmail").value.trim().toLowerCase();
+  if (!email) return;
+  $("loginBtn").disabled = true;
+  $("loginBtn").textContent = "Entrando…";
+  $("loginStatus").innerHTML = "";
+  const ok = await attemptLogin(email);
+  $("loginBtn").disabled = false;
+  $("loginBtn").textContent = "Entrar →";
+});
+
+$("logoutBtn").addEventListener("click", logout);
+
+// Auto-login if email saved
+(async () => {
+  const saved = localStorage.getItem("seazoneEmail");
+  if (saved) {
+    $("loginEmail").value = saved;
+    const ok = await attemptLogin(saved, { silent: true });
+    if (!ok) {
+      $("loginStatus").innerHTML = `<span class="err">Email salvo é inválido — entre de novo.</span>`;
+    }
+  }
+})();
+
+// ============ LOOKUP / CREATE ============
+function formatSyncDate(unix) {
+  if (!unix) return "?";
+  const n = parseInt(unix, 10);
+  if (!n) return "?";
+  return new Date(n * 1000).toLocaleString("pt-BR");
+}
+
+function sapronBadge(has) {
+  return has ? `<span class="badge badge-sapron" title="Possui etiqueta Sapron no Pipedrive">🏷 Sapron</span>` : "";
+}
+
+// ============ MERGE (individual) ============
+let lookupConflict = null; // { matches, keepId, mergeIds: Set }
+
+function renderLookupConflict() {
+  if (!lookupConflict) return;
+  const { matches, keepId, mergeIds } = lookupConflict;
+  const cardsHtml = matches.map((p) => {
+    let role = "";
+    let roleBadge = "";
+    if (String(p.id) === String(keepId)) { role = "role-keep"; roleBadge = `<span class="badge badge-keep">MANTER</span>`; }
+    else if (mergeIds.has(String(p.id))) { role = "role-merge"; roleBadge = `<span class="badge badge-merge">MESCLAR</span>`; }
+    return `<div class="card ${role}" data-id="${p.id}">
+      <div class="id-row">
+        <span class="pid">#${p.id}</span>
+        <button class="btn-copy" onclick="copyId('${p.id}')">Copiar ID</button>
+        <a class="btn-pd" href="${pdPersonUrl(p.id)}" target="_blank" rel="noopener">Abrir no Pipedrive ↗</a>
+        ${sapronBadge(p.has_sapron)}
+        ${roleBadge}
+      </div>
+      <div class="name">${escapeHtml(p.name) || "(sem nome)"}</div>
+      <div class="meta">
+        <strong>Email:</strong> ${escapeHtml(p.emails_str) || "—"}<br>
+        <strong>Tel:</strong> ${escapeHtml(p.phones_str) || "—"}<br>
+        <strong>Owner PD:</strong> ${p.owner_id || "—"} · <strong>Atualizado:</strong> ${escapeHtml(p.update_time) || "—"}<br>
+        <span class="sync-warn">Nekt sync: ${formatSyncDate(p._nekt_sync_at)}</span>
+      </div>
+      <div class="conflict-actions">
+        <button class="btn-keep ${String(p.id) === String(keepId) ? "active" : ""}" onclick="setLookupKeep('${p.id}')">Manter</button>
+        <button class="btn-merge ${mergeIds.has(String(p.id)) ? "active" : ""}" onclick="toggleLookupMerge('${p.id}')">Mesclar</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  const canExecute = keepId && mergeIds.size > 0;
+  const mergeBar = canExecute ? `
+    <div class="merge-bar">
+      <span class="summary">Manter <strong>#${keepId}</strong> · Mesclar nele: <strong>${[...mergeIds].map((id) => "#" + id).join(", ")}</strong></span>
+      <button class="btn-execute-merge" onclick="executeLookupMerge()">Executar mesclagem ⚠</button>
+    </div>
+  ` : `<div class="help-text" style="margin-top:14px;">Clique <strong>Manter</strong> em uma pessoa e <strong>Mesclar</strong> nas outras que quer absorver. Depois clique no botão de executar.</div>`;
+
+  $("result").innerHTML = `
+    <div class="panel">
+      <h3>⚠ ${matches.length} pessoas encontradas — escolha o que fazer</h3>
+      ${cardsHtml}
+      ${mergeBar}
+    </div>
+  `;
+}
+
+window.setLookupKeep = (id) => {
+  const s = String(id);
+  if (String(lookupConflict.keepId) === s) lookupConflict.keepId = null;
+  else {
+    lookupConflict.keepId = s;
+    lookupConflict.mergeIds.delete(s);
+  }
+  renderLookupConflict();
+};
+
+window.toggleLookupMerge = (id) => {
+  const s = String(id);
+  if (String(lookupConflict.keepId) === s) lookupConflict.keepId = null;
+  if (lookupConflict.mergeIds.has(s)) lookupConflict.mergeIds.delete(s);
+  else lookupConflict.mergeIds.add(s);
+  renderLookupConflict();
+};
+
+window.executeLookupMerge = async () => {
+  const { keepId, mergeIds, matches } = lookupConflict;
+  if (!keepId || mergeIds.size === 0) return;
+  const mergeArr = [...mergeIds];
+  const keepPerson = matches.find((m) => String(m.id) === String(keepId));
+  const msg = `Vai MANTER #${keepId} (${keepPerson?.name || ""}) e mesclar nele:\n${mergeArr.map((id) => "  • #" + id).join("\n")}\n\nOs dados de cada mesclada vão para a mantida. As mescladas deixam de existir como registro separado.\n\nIRREVERSÍVEL. Confirmar?`;
+  if (!confirm(msg)) return;
+
+  $("result").innerHTML = `<div class="panel"><h3>Mesclando…</h3></div>`;
+  try {
+    const j = await fetchJson("/api/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keep_id: keepId, merge_ids: mergeArr }),
+    });
+    const okCount = j.results.filter((r) => r.status === "ok").length;
+    const errs = j.results.filter((r) => r.status !== "ok");
+    $("result").innerHTML = `
+      <div class="panel">
+        <h3 class="ok">✓ Mesclagem concluída</h3>
+        ${renderCard(keepPerson)}
+        <div class="help-text">
+          ${okCount} de ${mergeArr.length} mescladas com sucesso.
+          ${errs.length ? `<br><span class="err">Falhas:</span><br>${errs.map((e) => `#${e.merge_id}: ${escapeHtml(e.error || "")}`).join("<br>")}` : ""}
+          <br><br>⏱ Nekt pode levar horas para refletir a mesclagem. O person_id <strong>#${keepId}</strong> continua válido no Pipedrive.
+        </div>
+      </div>
+    `;
+    lookupConflict = null;
+  } catch (e) {
+    $("result").innerHTML = `<div class="panel"><p class="err">Erro ao mesclar: ${escapeHtml(e.message)}</p></div>`;
+  }
+};
+
+function renderCard(p, { clickable = false } = {}) {
+  return `<div class="card ${clickable ? "clickable" : ""}" data-id="${p.id}">
+    <div class="id-row">
+      <span class="pid">#${p.id}</span>
+      <button class="btn-copy" onclick="event.stopPropagation(); copyId('${p.id}');">Copiar ID</button>
+      <a class="btn-pd" href="${pdPersonUrl(p.id)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">Abrir no Pipedrive ↗</a>
+      ${sapronBadge(p.has_sapron)}
+    </div>
+    <div class="name">${escapeHtml(p.name) || "(sem nome)"}</div>
+    <div class="meta">
+      <strong>Email:</strong> ${escapeHtml(p.emails_str) || "—"}<br>
+      <strong>Tel:</strong> ${escapeHtml(p.phones_str) || "—"}<br>
+      <strong>Owner PD:</strong> ${p.owner_id || "—"} · <strong>Atualizado:</strong> ${escapeHtml(p.update_time) || "—"}<br>
+      <span class="sync-warn">Nekt sync: ${formatSyncDate(p._nekt_sync_at)}</span>
+    </div>
+  </div>`;
+}
+
+async function lookup() {
+  const name = $("name").value.trim();
+  const phone = $("phone").value.trim();
+  const email = $("email").value.trim();
+  if (!email && !phone) {
+    showToast("Forneça pelo menos email ou telefone");
+    return;
+  }
+  $("result").innerHTML = `<p style="color: var(--sz-gray-600); font-size: 14px;">Buscando no Nekt…</p>`;
+
+  try {
+    const j = await fetchJson("/api/lookup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone, email }),
+    });
+
+    if (j.matches.length === 0) {
+      $("result").innerHTML = `
+        <div class="panel">
+          <h3>Nenhuma pessoa encontrada</h3>
+          <div class="empty-help">⏱ Nekt tem delay de ~horas. Pessoa criada recentemente pode não aparecer aqui ainda.</div>
+          <div class="card selected">
+            <div class="name">${escapeHtml(name) || "(sem nome)"}</div>
+            <div class="meta">
+              <strong>Email:</strong> ${escapeHtml(email) || "—"}<br>
+              <strong>Tel:</strong> ${escapeHtml(phone) || "—"}
+            </div>
+          </div>
+          <button class="btn-create" id="createBtn">+ Criar no Pipedrive</button>
+          <div class="help-text">Owner: <strong>${escapeHtml(currentUser.name)}</strong> (user_id ${currentUser.user_id})</div>
+        </div>
+      `;
+      $("createBtn").onclick = create;
+      $("createBtn").disabled = !name;
+      if (!name) $("createBtn").title = "Preencha o nome primeiro";
+    } else if (j.matches.length === 1) {
+      $("result").innerHTML = `
+        <div class="panel">
+          <h3 class="ok">✓ Encontrada 1 pessoa</h3>
+          ${renderCard(j.matches[0])}
+        </div>
+      `;
+    } else {
+      lookupConflict = { matches: j.matches, keepId: null, mergeIds: new Set() };
+      renderLookupConflict();
+    }
+  } catch (e) {
+    $("result").innerHTML = `<div class="panel"><p class="err">Erro: ${escapeHtml(e.message)}</p></div>`;
+  }
+}
+
+async function create() {
+  const btn = $("createBtn");
+  btn.disabled = true;
+  btn.textContent = "Criando…";
+  try {
+    const j = await fetchJson("/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: $("name").value.trim(),
+        phone: $("phone").value.trim(),
+        email: $("email").value.trim(),
+        owner_id: currentUser.user_id,
+      }),
+    });
+    $("result").innerHTML = `
+      <div class="panel">
+        <h3 class="ok">✓ Pessoa criada no Pipedrive</h3>
+        <div class="card selected">
+          <div class="id-row">
+            <span class="pid">#${j.person_id}</span>
+            <button class="btn-copy" onclick="copyId('${j.person_id}');">Copiar ID</button>
+            <a class="btn-pd" href="${pdPersonUrl(j.person_id)}" target="_blank" rel="noopener">Abrir no Pipedrive ↗</a>
+          </div>
+          <div class="name">${escapeHtml(j.name)}</div>
+          <div class="meta"><strong>Owner:</strong> ${escapeHtml(currentUser.name)} (user_id ${currentUser.user_id})</div>
+        </div>
+        <div class="help-text">⏱ Pode levar algumas horas até aparecer no Nekt — para uso imediato, use esse person_id direto no Pipedrive.</div>
+      </div>
+    `;
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "+ Criar no Pipedrive";
+    $("result").insertAdjacentHTML("beforeend", `<div class="panel"><p class="err">Erro ao criar: ${escapeHtml(e.message)}</p></div>`);
+  }
+}
+
+$("lookupBtn").onclick = lookup;
+[$("name"), $("phone"), $("email")].forEach((i) => {
+  i.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); lookup(); }});
+});
+
+// ============ BATCH ============
+let batchRows = []; // [{i, name, phone, email, status, match?, matches?, person_id?, error?}]
+
+function downloadXlsx(filename, aoa, sheetName) {
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = aoa[0].map((_, i) => ({
+    wch: Math.max(...aoa.map((r) => String(r[i] ?? "").length)) + 4,
+  }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName || "Sheet1");
+  XLSX.writeFile(wb, filename);
+}
+
+function downloadTemplate() {
+  const aoa = [
+    ["nome", "telefone", "email"],
+    ["Exemplo Maria Silva", "48999999999", "maria@exemplo.com"],
+  ];
+  downloadXlsx("personhub-template.xlsx", aoa, "Persons");
+  showToast("Modelo baixado");
+}
+
+function normalizeHeader(h) {
+  return String(h || "").trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+async function readSpreadsheet(file) {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", blankrows: false, raw: false });
+}
+
+async function handleCsvUpload(file) {
+  $("batchPreview").innerHTML = "";
+  if (!file) return;
+  let rows;
+  try {
+    rows = await readSpreadsheet(file);
+  } catch (e) {
+    $("batchPreview").innerHTML = `<div class="batch-preview"><span class="err">Não consegui ler o arquivo: ${escapeHtml(e.message)}</span></div>`;
+    return;
+  }
+  if (rows.length < 1) {
+    $("batchPreview").innerHTML = `<div class="batch-preview"><span class="err">CSV vazio.</span></div>`;
+    return;
+  }
+  const headers = rows[0].map(normalizeHeader);
+  const iName = headers.indexOf("nome");
+  const iPhone = headers.indexOf("telefone");
+  const iEmail = headers.indexOf("email");
+  if (iName === -1 || iPhone === -1 || iEmail === -1) {
+    $("batchPreview").innerHTML = `<div class="batch-preview"><span class="err">Headers esperados: nome, telefone, email. Encontrados: ${headers.join(", ")}</span></div>`;
+    return;
+  }
+  batchRows = rows.slice(1).map((r, idx) => ({
+    i: idx + 1,
+    name: (r[iName] || "").trim(),
+    phone: (r[iPhone] || "").trim(),
+    email: (r[iEmail] || "").trim(),
+    status: "pending",
+  }));
+  if (batchRows.length === 0) {
+    $("batchPreview").innerHTML = `<div class="batch-preview"><span class="err">Nenhuma linha de dados encontrada (só header).</span></div>`;
+    return;
+  }
+  if (batchRows.length > 100) {
+    $("batchPreview").innerHTML = `<div class="batch-preview"><span class="err">Limite atual: 100 linhas. Sua planilha tem ${batchRows.length}.</span></div>`;
+    return;
+  }
+  $("batchPreview").innerHTML = `
+    <div class="batch-preview">
+      <span class="file-name">📄 ${escapeHtml(file.name)}</span>
+      <span class="count">${batchRows.length} linha${batchRows.length === 1 ? "" : "s"} pronta${batchRows.length === 1 ? "" : "s"} para validar</span>
+      <button class="btn-primary" id="runBatchBtn" style="margin-left:auto;">✓ Validar ${batchRows.length} linha${batchRows.length === 1 ? "" : "s"}</button>
+    </div>
+  `;
+  $("runBatchBtn").onclick = runBatch;
+}
+
+async function runBatch() {
+  $("result").innerHTML = `
+    <div class="panel">
+      <h3>Validando ${batchRows.length} linha${batchRows.length === 1 ? "" : "s"} no Nekt…</h3>
+      <div class="progress"><div class="progress-fill" style="width:100%; animation: pulse 1.2s ease-in-out infinite;"></div></div>
+      <div class="progress-text">1 query SQL combinando todas as condições — ~3-5s</div>
+    </div>
+  `;
+
+  // Pre-flag rows without email/phone as "skip"
+  for (const r of batchRows) {
+    if (!r.email && !r.phone) r.status = "skip";
+  }
+
+  try {
+    const j = await fetchJson("/api/lookup-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rows: batchRows.map((r) => ({ email: r.email, phone: r.phone })) }),
+    });
+    j.results.forEach((res, idx) => {
+      const row = batchRows[idx];
+      if (row.status === "skip") return;
+      if (res.matches.length === 0) row.status = "not_found";
+      else if (res.matches.length === 1) { row.status = "found"; row.match = res.matches[0]; }
+      else { row.status = "conflict"; row.matches = res.matches; }
+    });
+  } catch (e) {
+    for (const r of batchRows) {
+      if (r.status !== "skip") {
+        r.status = "error";
+        r.error = e.message;
+      }
+    }
+  }
+  renderBatchResults();
+}
+
+function statusBadge(status, extra) {
+  const map = {
+    found: ['badge-ok', '✓ Encontrada'],
+    conflict: ['badge-conflict', `⚠ ${extra} matches`],
+    not_found: ['badge-missing', '✗ Não encontrada'],
+    created: ['badge-created', '✨ Criada'],
+    skip: ['badge-skip', '⊘ Sem email/tel'],
+    error: ['badge-err', '⚠ Erro'],
+    pending: ['badge-pending', '…'],
+  };
+  const [cls, label] = map[status] || ['badge-pending', status];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function renderBatchResults() {
+  const summary = {
+    found: batchRows.filter((r) => r.status === "found").length,
+    conflict: batchRows.filter((r) => r.status === "conflict").length,
+    missing: batchRows.filter((r) => r.status === "not_found").length,
+    created: batchRows.filter((r) => r.status === "created").length,
+    skip: batchRows.filter((r) => r.status === "skip").length,
+    error: batchRows.filter((r) => r.status === "error").length,
+  };
+  const totalMissing = summary.missing;
+
+  const rowsHtml = batchRows.map((r) => {
+    let actions = "";
+    let nameExtra = "";
+    if (r.status === "found") {
+      actions = `
+        <span class="col-id">#${r.match.id}</span>
+        <button class="btn-copy" onclick="copyId('${r.match.id}')">Copiar</button>
+        <a class="btn-pd" href="${pdPersonUrl(r.match.id)}" target="_blank" rel="noopener">Abrir ↗</a>
+        ${sapronBadge(r.match.has_sapron)}
+      `;
+    } else if (r.status === "conflict") {
+      if (r.matches.some((m) => m.has_sapron)) nameExtra = sapronBadge(true);
+      actions = `<button class="btn-copy" onclick="toggleConflict(${r.i - 1})">Ver ${r.matches.length} opções</button>`;
+    } else if (r.status === "created") {
+      actions = `
+        <span class="col-id">#${r.person_id}</span>
+        <button class="btn-copy" onclick="copyId('${r.person_id}')">Copiar</button>
+        <a class="btn-pd" href="${pdPersonUrl(r.person_id)}" target="_blank" rel="noopener">Abrir ↗</a>
+      `;
+    } else if (r.status === "not_found") {
+      actions = `<button class="btn-create" style="padding:5px 12px; font-size:12px; margin-top:0;" onclick="createBatchRow(${r.i - 1})">Criar</button>`;
+    } else if (r.status === "error") {
+      actions = `<span style="font-size:11px;color:#991b1b;">${escapeHtml(r.error || "—")}</span>`;
+    }
+
+    let conflictRow = "";
+    if (r.status === "conflict" && r._expanded) {
+      r._keepId = r._keepId || null;
+      r._mergeIds = r._mergeIds || new Set();
+      const rowIdx = r.i - 1;
+      const itemsHtml = r.matches.map((m) => {
+        let role = "";
+        let roleBadge = "";
+        if (String(m.id) === String(r._keepId)) { role = "role-keep"; roleBadge = `<span class="badge badge-keep">MANTER</span>`; }
+        else if (r._mergeIds.has(String(m.id))) { role = "role-merge"; roleBadge = `<span class="badge badge-merge">MESCLAR</span>`; }
+        return `<div class="opt ${role}">
+          <strong>#${m.id}</strong> ${escapeHtml(m.name)} ·
+          <span style="color:var(--sz-gray-600);">${escapeHtml(m.emails_str) || "—"} · ${escapeHtml(m.phones_str) || "—"}</span>
+          ${sapronBadge(m.has_sapron)}
+          ${roleBadge}
+          <button class="btn-copy" onclick="copyId('${m.id}')">Copiar</button>
+          <a class="btn-pd" href="${pdPersonUrl(m.id)}" target="_blank" rel="noopener">Abrir ↗</a>
+          <button class="btn-keep ${String(m.id) === String(r._keepId) ? "active" : ""}" onclick="setBatchKeep(${rowIdx},'${m.id}')">Manter</button>
+          <button class="btn-merge ${r._mergeIds.has(String(m.id)) ? "active" : ""}" onclick="toggleBatchMerge(${rowIdx},'${m.id}')">Mesclar</button>
+        </div>`;
+      }).join("");
+      const canExec = r._keepId && r._mergeIds.size > 0;
+      const mergeBar = canExec
+        ? `<div class="merge-bar" style="margin-top:10px;">
+            <span class="summary">Manter <strong>#${r._keepId}</strong> · Mesclar nele: <strong>${[...r._mergeIds].map((id) => "#" + id).join(", ")}</strong></span>
+            <button class="btn-execute-merge" onclick="executeBatchMerge(${rowIdx})">Executar mesclagem ⚠</button>
+          </div>`
+        : `<div class="help-text" style="margin-top:8px;font-size:11px;">Clique <strong>Manter</strong> num e <strong>Mesclar</strong> nos outros pra absorver.</div>`;
+      conflictRow = `<tr><td></td><td colspan="5"><div class="conflict-list">${itemsHtml}</div>${mergeBar}</td></tr>`;
+    }
+
+    return `
+      <tr>
+        <td class="col-num">${r.i}</td>
+        <td class="col-name">${escapeHtml(r.name) || "—"} ${nameExtra}</td>
+        <td>${escapeHtml(r.phone) || "—"}</td>
+        <td>${escapeHtml(r.email) || "—"}</td>
+        <td>${statusBadge(r.status, r.matches ? r.matches.length : "")}</td>
+        <td class="col-actions">${actions}</td>
+      </tr>
+      ${conflictRow}
+    `;
+  }).join("");
+
+  $("result").innerHTML = `
+    <div class="panel">
+      <h3>Resultado da validação (${batchRows.length} linhas)</h3>
+      <div style="font-size:12px; color:var(--sz-gray-600); margin-bottom:12px;">
+        ${summary.found} encontradas · ${summary.conflict} conflitos · ${summary.missing} não-encontradas
+        ${summary.created ? `· ${summary.created} criadas` : ""}
+        ${summary.skip ? `· ${summary.skip} sem dados` : ""}
+        ${summary.error ? `· ${summary.error} com erro` : ""}
+      </div>
+      <div class="batch-table-wrap">
+        <table class="batch-table">
+          <thead>
+            <tr><th>#</th><th>Nome</th><th>Telefone</th><th>Email</th><th>Status</th><th>Ações</th></tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      <div class="batch-actions">
+        ${totalMissing > 0 ? `<button class="btn-create" style="margin-top:0;" id="createAllBtn">+ Criar todas as ${totalMissing} não-encontradas</button>` : ""}
+        <button class="btn-secondary" id="downloadResultsBtn">⬇ Baixar resultados CSV</button>
+      </div>
+    </div>
+  `;
+  if (totalMissing > 0) $("createAllBtn").onclick = createAllMissing;
+  $("downloadResultsBtn").onclick = downloadResults;
+}
+
+window.toggleConflict = (idx) => {
+  batchRows[idx]._expanded = !batchRows[idx]._expanded;
+  renderBatchResults();
+};
+
+window.setBatchKeep = (idx, id) => {
+  const r = batchRows[idx];
+  r._keepId = r._keepId || null;
+  r._mergeIds = r._mergeIds || new Set();
+  const s = String(id);
+  if (String(r._keepId) === s) r._keepId = null;
+  else { r._keepId = s; r._mergeIds.delete(s); }
+  renderBatchResults();
+};
+
+window.toggleBatchMerge = (idx, id) => {
+  const r = batchRows[idx];
+  r._keepId = r._keepId || null;
+  r._mergeIds = r._mergeIds || new Set();
+  const s = String(id);
+  if (String(r._keepId) === s) r._keepId = null;
+  if (r._mergeIds.has(s)) r._mergeIds.delete(s);
+  else r._mergeIds.add(s);
+  renderBatchResults();
+};
+
+window.executeBatchMerge = async (idx) => {
+  const r = batchRows[idx];
+  if (!r._keepId || !r._mergeIds || r._mergeIds.size === 0) return;
+  const mergeArr = [...r._mergeIds];
+  const keepMatch = r.matches.find((m) => String(m.id) === String(r._keepId));
+  const msg = `Linha ${r.i} (${r.name || "—"})\n\nVai MANTER #${r._keepId} (${keepMatch?.name || ""}) e mesclar:\n${mergeArr.map((id) => "  • #" + id).join("\n")}\n\nIRREVERSÍVEL. Confirmar?`;
+  if (!confirm(msg)) return;
+
+  r.status = "pending";
+  renderBatchResults();
+  try {
+    const j = await fetchJson("/api/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keep_id: r._keepId, merge_ids: mergeArr }),
+    });
+    const errs = j.results.filter((x) => x.status !== "ok");
+    r.status = "found";
+    r.match = keepMatch;
+    r._expanded = false;
+    if (errs.length) r.error = `${errs.length} mesclagens falharam: ${errs.map((e) => "#" + e.merge_id).join(", ")}`;
+    delete r._keepId;
+    delete r._mergeIds;
+  } catch (e) {
+    r.status = "error";
+    r.error = e.message;
+  }
+  renderBatchResults();
+};
+
+window.createBatchRow = async (idx) => {
+  const r = batchRows[idx];
+  if (!r.name) { showToast("Linha sem nome — edita o CSV e sobe de novo"); return; }
+  r.status = "pending";
+  renderBatchResults();
+  try {
+    const j = await fetchJson("/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: r.name, phone: r.phone, email: r.email, owner_id: currentUser.user_id }),
+    });
+    r.status = "created";
+    r.person_id = j.person_id;
+  } catch (e) {
+    r.status = "error";
+    r.error = e.message;
+  }
+  renderBatchResults();
+};
+
+async function createAllMissing() {
+  const missing = batchRows.filter((r) => r.status === "not_found");
+  const withName = missing.filter((r) => r.name);
+  const withoutName = missing.length - withName.length;
+  let msg = `Criar ${withName.length} pessoa${withName.length === 1 ? "" : "s"} no Pipedrive?`;
+  if (withoutName) msg += `\n(${withoutName} ignorada${withoutName === 1 ? "" : "s"} por falta de nome)`;
+  msg += `\nOwner: ${currentUser.name}`;
+  if (!confirm(msg)) return;
+
+  for (const r of withName) {
+    r.status = "pending";
+  }
+  renderBatchResults();
+
+  for (let i = 0; i < withName.length; i += 3) {
+    const chunk = withName.slice(i, i + 3);
+    await Promise.all(chunk.map(async (r) => {
+      try {
+        const j = await fetchJson("/api/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: r.name, phone: r.phone, email: r.email, owner_id: currentUser.user_id }),
+        });
+        r.status = "created";
+        r.person_id = j.person_id;
+      } catch (e) {
+        r.status = "error";
+        r.error = e.message;
+      }
+    }));
+    renderBatchResults();
+  }
+}
+
+function downloadResults() {
+  const aoa = [["nome", "telefone", "email", "status", "person_id", "pipedrive_url", "tem_sapron", "observacao"]];
+  for (const r of batchRows) {
+    let pid = "", url = "", obs = "", sapron = "";
+    if (r.status === "found") {
+      pid = r.match.id; url = pdPersonUrl(pid); obs = r.match.name;
+      sapron = r.match.has_sapron ? "sim" : "não";
+    } else if (r.status === "created") {
+      pid = r.person_id; url = pdPersonUrl(pid); obs = "Criada agora";
+    } else if (r.status === "conflict") {
+      obs = `${r.matches.length} matches: ${r.matches.map((m) => "#" + m.id).join(" ")}`;
+      sapron = r.matches.some((m) => m.has_sapron) ? "algum" : "não";
+    } else if (r.status === "error") { obs = r.error || ""; }
+    else if (r.status === "skip") { obs = "Sem email nem telefone"; }
+    aoa.push([r.name, r.phone, r.email, r.status, pid, url, sapron, obs]);
+  }
+  downloadXlsx("personhub-resultados.xlsx", aoa, "Resultados");
+  showToast("Resultados baixados");
+}
+
+$("downloadTemplateBtn").onclick = downloadTemplate;
+$("importCsvBtn").onclick = () => $("csvFile").click();
+$("csvFile").onchange = (e) => handleCsvUpload(e.target.files[0]);
+</script>
+</body>
+</html>
