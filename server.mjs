@@ -247,6 +247,9 @@ const server = createServer(async (req, res) => {
       const body = await readBody(req);
       const { name, phone, email, owner_id } = body;
       if (!name || !owner_id) return send(400, { error: "name e owner_id obrigatórios" });
+      if (!(email && email.trim()) && !(phone && phone.trim())) {
+        return send(400, { error: "Forneça pelo menos email ou telefone" });
+      }
       // Garantir que o owner_id enviado é o do próprio usuário autenticado (evita spoofing)
       if (String(owner_id) !== String(auth.user.id)) {
         return send(403, { error: "owner_id não corresponde ao usuário autenticado" });

@@ -914,6 +914,13 @@ async function lookup() {
     });
 
     if (j.matches.length === 0) {
+      const hasContact = !!(email || phone);
+      const canCreate = !!name && hasContact;
+      const blockReason = !name
+        ? "Preencha o <strong>nome</strong> primeiro."
+        : !hasContact
+          ? "Preencha pelo menos <strong>email</strong> ou <strong>telefone</strong>."
+          : "";
       $("result").innerHTML = `
         <div class="panel">
           <h3>Nenhuma pessoa encontrada</h3>
@@ -925,13 +932,12 @@ async function lookup() {
               <strong>Tel:</strong> ${escapeHtml(phone) || "—"}
             </div>
           </div>
-          <button class="btn-create" id="createBtn">+ Criar no Pipedrive</button>
+          <button class="btn-create" id="createBtn" ${canCreate ? "" : "disabled"}>+ Criar no Pipedrive</button>
+          ${blockReason ? `<div class="help-text err">${blockReason}</div>` : ""}
           <div class="help-text">Owner: <strong>${escapeHtml(currentUser.name)}</strong> (user_id ${currentUser.user_id})</div>
         </div>
       `;
       $("createBtn").onclick = create;
-      $("createBtn").disabled = !name;
-      if (!name) $("createBtn").title = "Preencha o nome primeiro";
     } else if (j.matches.length === 1) {
       $("result").innerHTML = `
         <div class="panel">
@@ -949,6 +955,13 @@ async function lookup() {
 }
 
 async function create() {
+  if (!currentUser) { alert("Login com email Seazone primeiro"); return; }
+  const name = $("name").value.trim();
+  const phone = $("phone").value.trim();
+  const email = $("email").value.trim();
+  if (!name) { showToast("Nome é obrigatório"); return; }
+  if (!email && !phone) { showToast("Preencha email ou telefone"); return; }
+
   const btn = $("createBtn");
   btn.disabled = true;
   btn.textContent = "Criando…";
@@ -957,9 +970,7 @@ async function create() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: $("name").value.trim(),
-        phone: $("phone").value.trim(),
-        email: $("email").value.trim(),
+        name, phone, email,
         owner_id: currentUser.user_id,
       }),
     });
@@ -1289,7 +1300,8 @@ window.executeBatchMerge = async (idx) => {
 
 window.createBatchRow = async (idx) => {
   const r = batchRows[idx];
-  if (!r.name) { showToast("Linha sem nome — edita o CSV e sobe de novo"); return; }
+  if (!r.name) { showToast("Linha sem nome — edita a planilha e sobe de novo"); return; }
+  if (!r.email && !r.phone) { showToast("Linha sem email nem telefone — preencha um dos dois"); return; }
   r.status = "pending";
   renderBatchResults();
   try {
@@ -1309,20 +1321,28 @@ window.createBatchRow = async (idx) => {
 
 async function createAllMissing() {
   const missing = batchRows.filter((r) => r.status === "not_found");
-  const withName = missing.filter((r) => r.name);
-  const withoutName = missing.length - withName.length;
-  let msg = `Criar ${withName.length} pessoa${withName.length === 1 ? "" : "s"} no Pipedrive?`;
-  if (withoutName) msg += `\n(${withoutName} ignorada${withoutName === 1 ? "" : "s"} por falta de nome)`;
+  const valid = missing.filter((r) => r.name && (r.email || r.phone));
+  const noName = missing.filter((r) => !r.name).length;
+  const noContact = missing.filter((r) => r.name && !r.email && !r.phone).length;
+
+  if (valid.length === 0) {
+    showToast("Nenhuma linha válida para criar (nome + email/telefone obrigatórios)");
+    return;
+  }
+
+  let msg = `Criar ${valid.length} pessoa${valid.length === 1 ? "" : "s"} no Pipedrive?`;
+  if (noName) msg += `\n(${noName} ignorada${noName === 1 ? "" : "s"} por falta de nome)`;
+  if (noContact) msg += `\n(${noContact} ignorada${noContact === 1 ? "" : "s"} por falta de email e telefone)`;
   msg += `\nOwner: ${currentUser.name}`;
   if (!confirm(msg)) return;
 
-  for (const r of withName) {
+  for (const r of valid) {
     r.status = "pending";
   }
   renderBatchResults();
 
-  for (let i = 0; i < withName.length; i += 3) {
-    const chunk = withName.slice(i, i + 3);
+  for (let i = 0; i < valid.length; i += 3) {
+    const chunk = valid.slice(i, i + 3);
     await Promise.all(chunk.map(async (r) => {
       try {
         const j = await fetchJson("/api/create", {
